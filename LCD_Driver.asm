@@ -101,21 +101,29 @@ MyProgram:
     lcall 	LCD_Init
     mov		a, #80H
     lcall	LCD_command
+    
     mov		dptr, #IDLE_1
 	lcall 	SendString
 	
     mov 	a, #0C0H
 	lcall 	LCD_command
+	
+	mov 	a, #14H
+	lcall 	LCD_command
+	
 	mov		a, roomTemp
-	anl		a, #0FH
 	swap	a
+	anl		a, #0FH
 	orl		a, #30H
 	lcall	LCD_put
+	
 	mov		a, roomTemp
 	anl		a, #0FH
 	orl		a, #30H
 	lcall	LCD_put
+	
 	mov		dptr, #IDLE_2
 	lcall 	SendString
-	
+forever:
+	sjmp forever
 	END
