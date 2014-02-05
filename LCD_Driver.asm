@@ -1,7 +1,17 @@
 $MODDE2
 org 0000H
    ljmp MyProgram
+   
+DSEG at 30H
+roomTemp:	ds	1
 
+CSEG
+
+IDLE_1:
+    DB  'IDLE KEY3 TO RUN',0
+IDLE_2:
+	DB	'C KEY2 TO SET', 0 
+	
 Wait40us:
 	mov R0, #149
 Wait40us_L0: 
@@ -45,11 +55,6 @@ SendString:
     SJMP 	SendString
 SSDone:
 	ret
-	    
-IDLE_1:
-    DB  'IDLE KEY3 TO RUN',0
-IDLE_2:
-	DB	'C KEY2 TO SET', 0
 
 LCD_Init:
     ; Turn LCD on, and wait a bit.
@@ -72,8 +77,8 @@ LCD_Init:
 Clr_loop:
 	lcall Wait40us
 	djnz R1, Clr_loop
-	ret
-    
+	ret 
+	
 MyProgram:
 	mov 	sp, #07FH
 	clr 	a
@@ -81,6 +86,8 @@ MyProgram:
 	mov 	LEDRA, a
 	mov 	LEDRB, a
 	mov 	LEDRC, a
+	
+	mov		roomTemp, #23H
 	
     lcall 	LCD_Init
     mov		a, #80H
@@ -90,8 +97,16 @@ MyProgram:
 	
     mov 	a, #0C0H
 	lcall 	LCD_command
+	mov		a, roomTemp
+	anl		a, #0FH
+	swap	a
+	orl		a, #30H
+	lcall	LCD_put
+	mov		a, roomTemp
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
 	mov		dptr, #IDLE_2
 	lcall 	SendString
 	
-	END0
-	
+	END
