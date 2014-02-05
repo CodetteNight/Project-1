@@ -23,16 +23,25 @@ Wait40us_L0:
 	nop
 	djnz R0, Wait40us_L0 ; 9 machine cycles-> 9*30ns*149=40us
     ret
-
-LCD_put:
-	mov	LCD_DATA, A
-	setb LCD_RS
-	ljmp LCD_finish
-
+    
 LCD_command:
 	mov	LCD_DATA, A
 	clr	LCD_RS
-LCD_finish:
+	nop
+	nop
+	setb LCD_EN ; Enable pulse should be at least 230 ns
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	clr	LCD_EN
+	ljmp Wait40us
+	
+LCD_put:
+	mov	LCD_DATA, A
+	setb LCD_RS
 	nop
 	nop
 	setb LCD_EN ; Enable pulse should be at least 230 ns
