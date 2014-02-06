@@ -1,58 +1,15 @@
 $MODDE2
-org 0000H
-   ljmp MyProgram
-   
-DSEG at 30H
-roomTemp:	ds	1
 
-CSEG
-
-IDLE_1:
-    DB  'IDLE KEY3 TO RUN',0
-IDLE_2:
-	DB	'C KEY2 TO SET', 0 
-	
-Wait40us:
-	mov R0, #149
-Wait40us_L0: 
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	djnz R0, Wait40us_L0 ; 9 machine cycles-> 9*30ns*149=40us
-    ret
+$include (helper.asm)
     
-LCD_command:
-	mov	LCD_DATA, A
-	clr	LCD_RS
-	nop
-	nop
-	setb LCD_EN ; Enable pulse should be at least 230 ns
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	clr	LCD_EN
-	ljmp Wait40us
-	
-LCD_put:
-	mov	LCD_DATA, A
-	setb LCD_RS
-	nop
-	nop
-	setb LCD_EN ; Enable pulse should be at least 230 ns
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	clr	LCD_EN
-	ljmp Wait40us
+clear_flags:
+	clr	I
+	clr	R2S
+	clr	S
+	clr	R2P
+	clr	R
+	clr	CL
+	ret
 
 ; Send a constant-zero-terminated string through the serial port
 SendString:
@@ -72,43 +29,30 @@ LCD_Init:
     lcall Wait40us
     
     mov LCD_MOD, #0xff ; Use LCD_DATA as output port
-    clr LCD_RW ;  Only writing to the LCD in this code.
+    clr 	LCD_RW ;  Only writing to the LCD in this code.
 	
-	mov a, #0ch ; Display on command
-	lcall LCD_command
-	mov a, #38H ; 8-bits interface, 2 lines, 5x7 characters
-	lcall LCD_command
-	mov a, #01H ; Clear screen (Warning, very slow command!)
-	lcall LCD_command
-    
-    ; Delay loop needed for 'clear screen' command above (1.6ms at least!)
-    mov R1, #40
-Clr_loop:
-	lcall Wait40us
-	djnz R1, Clr_loop
+	mov 	a, #0ch ; Display on command
+	lcall 	LCD_command
+	mov 	a, #38H ; 8-bits interface, 2 lines, 5x7 characters
+	lcall 	LCD_command
+	lcall	clear_LCD
 	ret 
 	
-MyProgram:
-	mov 	sp, #07FH
-	clr 	a
-	mov 	LEDG,  a
-	mov 	LEDRA, a
-	mov 	LEDRB, a
-	mov 	LEDRC, a
-	
-	mov		roomTemp, #23H
-	
-    lcall 	LCD_Init
-    mov		a, #80H
+I_set:
+	lcall	clear_LCD
+	lcall	clear_flags
+	setb	I
+I_state:
+    mov		a, Line1
     lcall	LCD_command
     
     mov		dptr, #IDLE_1
 	lcall 	SendString
 	
-    mov 	a, #0C0H
+    mov 	a, Line2
 	lcall 	LCD_command
 	
-	mov 	a, #14H
+	mov 	a, Right1
 	lcall 	LCD_command
 	
 	mov		a, roomTemp
@@ -124,6 +68,108 @@ MyProgram:
 	
 	mov		dptr, #IDLE_2
 	lcall 	SendString
-forever:
-	sjmp forever
-	END
+	ret
+	
+R2S_set:
+	lcall	clear_LCD
+	lcall	clear_flags
+	setb	R2S
+	ret
+	
+S_set:
+	lcall	clear_LCD
+	lcall	clear_flags
+	setb	S
+S_state:
+	mov		a, Line1
+    lcall	LCD_command
+    
+    mov		dptr, #GLOBAL
+	lcall 	SendString
+	
+    mov 	a, Line2
+	lcall 	LCD_command
+	
+	mov		a, roomTemp
+	swap	a
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, roomTemp
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		dptr, #SOAK
+	lcall 	SendString
+	ret
+	
+R2P_set:
+	lcall	clear_LCD
+	lcall	clear_flags
+	setb	R2P
+	ret
+	
+R_set:
+	lcall	clear_LCD
+	lcall	clear_flags
+	setb	R
+	ret
+	
+CL_set:
+	lcall	clear_LCD
+	lcall	clear_flags
+	setb	CL
+	ret	
+	
+MyProgram:
+	mov 	sp, #07FH
+	clr 	a
+	mov 	LEDG,  a
+	mov 	LEDRA, a
+	mov 	LEDRB, a
+	mov 	LEDRC, a
+	
+	mov		roomTemp, #23H
+	
+    lcall 	LCD_Init
+    lcall	I_set
+Main_loop:
+	;lcall state_idle_check
+	jb 		KEY.3, Main_loop
+	jnb		KEY.3, $
+	lcall	R2S_set
+	;lcall state_R2S_set
+Main_R2S:
+	;lcall state_R2S_check
+	jnb		KEY.1, Main_reset
+	jb 		KEY.3, Main_R2S
+	jnb		KEY.1, $
+	;jnb go, M_st_R2S
+	;lcall state_soak_set
+M_st_soak:
+	;lcall state_soak_check
+	;jb reset, M_done
+	;jnb go, M_st_soak
+	;lcall state_R2P_set
+M_st_R2P:
+	;lcall state_R2P_check
+	;jb reset, M_done
+	;jnb go, M_st_R2P
+	;lcall state_reflow_set
+M_st_reflow:
+	;lcall state_reflow_check
+	;jb reset, M_done
+	;jnb go, M_st_cool
+	;lcall state_cool_set
+M_st_cool:
+	;lcall state_cool_check
+	;jnb go, M_st_cool
+	;lcall lcd_open_door
+Main_reset:
+	jnb		KEY.1, $
+	lcall	I_set
+	;lcall reset_all_value
+	ljmp Main_loop
+END    
