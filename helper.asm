@@ -12,20 +12,20 @@ org 0000H
    ljmp MyProgram
    
 DSEG at 30H
-roomTemp:	ds	1
-ovenTemp:	ds	2
-R2S_Temp:	ds	2
-S_Time:		ds	2
-R2P_Temp:	ds	2
-R_Time:		ds	2
+roomTemp:	ds	1	; Current room temperature
+ovenTemp:	ds	2	; Current oven temperature
+R2S_Temp:	ds	2	; Soak Temperature -- condition from ramp-to-soak --> soak
+S_Time:		ds	2	; Soak Time -- condition from soak --> Ramp-to-peak
+R2P_Temp:	ds	2	; Reflow Temperature -- condition from Ramp-to-peak --> Reflow
+R_Time:		ds	2	; Reflow Time -- condition from Reflow --> cooling
 
 BSEG
-I:		dbit	1	;Idle state flag
-R2S:	dbit	1	;Ramp-2-Soak state flag
-S:		dbit	1	;Soak state flag
-R2P:	dbit	1	;Ramp-2-Peak state flag	
-R:		dbit	1	;Reflow state flag
-CL:		dbit	1	;Cooling state flag
+I:		dbit	1	; Idle state flag
+R2S:	dbit	1	; Ramp-2-Soak state flag
+S:		dbit	1	; Soak state flag
+R2P:	dbit	1	; Ramp-2-Peak state flag	
+R:		dbit	1	; Reflow state flag
+CL:		dbit	1	; Cooling state flag
 
 CSEG
 
@@ -34,17 +34,20 @@ IDLE_1:
 IDLE_2:
 	DB	'C KEY2 TO SET', 0 
 SRAMP:
-	DB	'SRAMP',0
+	DB	'SRAMP ',0
 SOAK:
-	DB	'SOAK',0
+	DB	'SOAK ',0
 PRAMP:
-	DB	'PRAMP',0
+	DB	'PRAMP ',0
 REFLOW:
-	DB	'REFLOW',0
+	DB	'REFLOW ',0
 COOL:
-	DB	'COOL',0
+	DB	'COOL ',0
 GLOBAL:
-	DB	'GBL',0
+	DB	'GBL  ',0
+TIME:
+	DB	'###s',0
+	
 ;---------------------------------------------------
 ; Clear the LCD Screen
 ;---------------------------------------------------
@@ -59,7 +62,7 @@ clear_LCD:
 	lcall 	LCD_command
     mov 	R1, #40
 clear_loop:
-	lcall 	hide_Wait40us
+	lcall 	Wait40us
 	djnz 	R1, clear_loop
 
 	pop 	AR2
@@ -104,13 +107,38 @@ LCD_put_done:
 	nop
 	nop
 	clr		LCD_EN
-	lcall 	hide_Wait40us
+	lcall 	Wait40us
 	
 	pop 	AR2
 	pop 	AR1
 	pop 	AR0
 	pop 	psw
 	pop 	acc
+	ret
+	
+;---------------------------------------------------
+; Clear all the state flags
+;---------------------------------------------------
+clear_flags:
+	clr	I
+	clr	R2S
+	clr	S
+	clr	R2P
+	clr	R
+	clr	CL
+	ret
+
+;---------------------------------------------------
+; Put a constant-zero-terminated string on the LCD screen
+;---------------------------------------------------
+SendString:
+    clr 	a
+    movc 	a, @a+dptr
+    jz 		Send_done
+    lcall 	LCD_put
+    inc 	dptr
+    sjmp 	SendString
+Send_done:
 	ret
 
 ;---------------------------------------------------
@@ -140,19 +168,4 @@ Wait40us_loop:
 	pop 	acc
     ret
 	
-;---------------------------------------------------
-; Internal call, not used in main program
-;---------------------------------------------------	
-hide_Wait40us:	
-	mov 	R0, #149
-hide_Wait40us_loop: 
-	nop
-	nop
-	nop
-	nop
-	nop
-	nop
-	djnz 	R0, hide_Wait40us_loop
-    ret
-    
 $LIST

@@ -1,26 +1,6 @@
 $MODDE2
 
 $include (helper.asm)
-    
-clear_flags:
-	clr	I
-	clr	R2S
-	clr	S
-	clr	R2P
-	clr	R
-	clr	CL
-	ret
-
-; Send a constant-zero-terminated string through the serial port
-SendString:
-    CLR 	A
-    MOVC 	A, @A+DPTR
-    JZ 		SSDone
-    LCALL 	LCD_put
-    INC 	DPTR
-    SJMP 	SendString
-SSDone:
-	ret
 
 LCD_Init:
     ; Turn LCD on, and wait a bit.
@@ -74,6 +54,72 @@ R2S_set:
 	lcall	clear_LCD
 	lcall	clear_flags
 	setb	R2S
+R2S_state:
+    mov		a, Line1
+    lcall	LCD_command
+    
+    mov		dptr, #GLOBAL
+	lcall 	SendString
+	
+	mov 	a, Right1
+	lcall 	LCD_command
+	
+	mov		a, ovenTemp+1
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, ovenTemp+0
+	swap	a
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, ovenTemp+0
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, #'C'
+	lcall	LCD_put
+	
+	mov		a, Right1
+	lcall	LCD_command
+	
+	mov		dptr, #TIME
+	lcall	SendString
+	
+	mov 	a, Line2
+	lcall 	LCD_command
+	
+	mov		dptr, #SRAMP
+	lcall 	SendString
+	
+	mov		a, R2S_Temp+1
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, R2S_Temp+0
+	swap	a
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, R2S_Temp+0
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, #'C'
+	lcall	LCD_put
+	
+	mov		a, Right1
+	lcall	LCD_command
+	
+	mov		dptr, #TIME
+	lcall	SendString
+	
 	ret
 	
 S_set:
@@ -81,28 +127,70 @@ S_set:
 	lcall	clear_flags
 	setb	S
 S_state:
-	mov		a, Line1
+    mov		a, Line1
     lcall	LCD_command
     
     mov		dptr, #GLOBAL
 	lcall 	SendString
 	
-    mov 	a, Line2
+	mov 	a, Right1
 	lcall 	LCD_command
 	
-	mov		a, roomTemp
+	mov		a, ovenTemp+1
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, ovenTemp+0
 	swap	a
 	anl		a, #0FH
 	orl		a, #30H
 	lcall	LCD_put
 	
-	mov		a, roomTemp
+	mov		a, ovenTemp+0
 	anl		a, #0FH
 	orl		a, #30H
 	lcall	LCD_put
 	
-	mov		dptr, #SOAK
+	mov		a, #'C'
+	lcall	LCD_put
+	
+	mov		a, Right1
+	lcall	LCD_command
+	
+	mov		dptr, #TIME
+	lcall	SendString
+	
+	mov 	a, Line2
+	lcall 	LCD_command
+	
+	mov		dptr, #SRAMP
 	lcall 	SendString
+	
+	mov		a, R2S_Temp+1
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, R2S_Temp+0
+	swap	a
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, R2S_Temp+0
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, #'C'
+	lcall	LCD_put
+	
+	mov		a, Right1
+	lcall	LCD_command
+	
+	mov		dptr, #TIME
+	lcall	SendString
 	ret
 	
 R2P_set:
@@ -132,6 +220,10 @@ MyProgram:
 	mov 	LEDRC, a
 	
 	mov		roomTemp, #23H
+	mov		ovenTemp+1, #01H
+	mov		ovenTemp+0, #00H
+	mov		R2S_Temp+1, #01H
+	mov		R2S_Temp+0, #50H
 	
     lcall 	LCD_Init
     lcall	I_set
