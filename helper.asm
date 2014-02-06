@@ -26,6 +26,7 @@ S:		dbit	1	; Soak state flag
 R2P:	dbit	1	; Ramp-2-Peak state flag	
 R:		dbit	1	; Reflow state flag
 CL:		dbit	1	; Cooling state flag
+param:	dbit	2	; Flag used to toggle through params in 'SET' mode
 
 CSEG
 
@@ -34,19 +35,17 @@ IDLE_1:
 IDLE_2:
 	DB	'C KEY2 TO SET', 0 
 SRAMP:
-	DB	'SRAMP ',0
+	DB	'SRAMP  ',0
 SOAK:
-	DB	'SOAK ',0
+	DB	'SOAK   ',0
 PRAMP:
-	DB	'PRAMP ',0
+	DB	'PRAMP  ',0
 REFLOW:
 	DB	'REFLOW ',0
-COOL:
-	DB	'COOL ',0
+COOL: 
+	DB	'COOL   ',0
 GLOBAL:
-	DB	'GBL  ',0
-TIME:
-	DB	'###s',0
+	DB	'GBL    ',0
 	
 ;---------------------------------------------------
 ; Clear the LCD Screen
@@ -167,5 +166,47 @@ Wait40us_loop:
 	pop 	psw
 	pop 	acc
     ret
+    
+;---------------------------------------------------
+; Display temperature or time stored in R1 and R0 
+; on the LCD screen. c = 1, temperature; c = 0, time
+;---------------------------------------------------	
+time_temp:	
+	push 	acc
+	push 	psw
+	push 	AR0
+	push 	AR1
+	push 	AR2
+	
+	mov		a, R1
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, R0
+	swap	a
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	mov		a, R0
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	LCD_put
+	
+	jnc		LCD_time
+	mov		a, #'C'
+	sjmp	LCD_temp
+LCD_time:
+	mov		a, #'s'
+LCD_temp:
+	lcall	LCD_put
+	
+	pop 	AR2
+	pop 	AR1
+	pop 	AR0
+	pop 	psw
+	pop 	acc
+    ret		
 	
 $LIST
