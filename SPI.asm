@@ -32,7 +32,7 @@ DO_SPI_LOOP:
 	ret
 
 INIT_SPI:
-	orl P0MOD, #00001110b ; Set MOSI, SCK, SS as output
+	orl P0MOD, #00101110b ; Set MOSI, SCK, SS, BUZZ as output
 	anl P0MOD, #11111110b ; Set MISO as input
 	clr SCLK
 	ret

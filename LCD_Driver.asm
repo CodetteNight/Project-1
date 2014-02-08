@@ -10,32 +10,47 @@ ISR_timer2:
 	
 	clr  	TF2
 	
+	mov		a, buzz_loop
+	jz		noBuzz
+	jnb		bzBit, oscBuzz
+	cpl		BUZZ
+oscBuzz:
+	djnz	buzz_cnt, noBuzz
+	djnz	buzz_loop, fillBuzz
+	clr		bzBit
+	ljmp	noBuzz
+fillBuzz:
+	mov		buzz_cnt, BZTIME
+	jnb		osc, noBuzz
+	cpl		bzBit
+
+noBuzz:
 	mov  	a, Cnt_10ms
 	inc  	a
 	mov  	Cnt_10ms, a
 	
-	cjne a, #100, end_ISR2
+	cjne 	a, #100, end_ISR2
 	
 	mov  	Cnt_10ms, #0
-	mov  a, runTime+0
-	add  a, #1
-	da   a
-	mov  runTime+0, a
-	cjne a, #99H, cont1
-	mov  a, runTime+1
-	add  a, #1
-	da   a
-	mov  runTime+1, a
+	mov  	a, runTime+0
+	add  	a, #1
+	da   	a
+	mov  	runTime+0, a
+	cjne 	a, #99H, cont1
+	mov  	a, runTime+1
+	add  	a, #1
+	da   	a
+	mov  	runTime+1, a
 cont1:
-	mov  a, stateTime+0
-	add  a, #1
-	da   a
-	mov  stateTime+0, a
-	cjne a, #99H, cont2
-	mov  a, stateTime+1
-	add  a, #1
-	da   a
-	mov  stateTime+1, a
+	mov  	a, stateTime+0
+	add  	a, #1
+	da   	a
+	mov  	stateTime+0, a
+	cjne 	a, #99H, cont2
+	mov  	a, stateTime+1
+	add  	a, #1
+	da   	a
+	mov  	stateTime+1, a
 cont2:
 	mov		a, Line1
 	lcall	LCD_command
@@ -65,17 +80,17 @@ end_ISR2:
 	reti
 
 Timer_Init:
-	mov  TMOD,  #00000001B ; GATE=0, C/T*=0, M1=0, M0=1: 16-bit timer
-	mov  T2CON, #00H ; Autoreload is enabled, work as a timer
-    clr  TR2
-    clr  TF2
+	mov  	TMOD,  #00000001B ; GATE=0, C/T*=0, M1=0, M0=1: 16-bit timer
+	mov  	T2CON, #00H ; Autoreload is enabled, work as a timer
+    clr  	TR2
+    clr  	TF2
     ; Set up timer 2 to interrupt every 10ms
-    mov  RCAP2H,#high(TIMER_RELOAD)
-    mov  RCAP2L,#low(TIMER_RELOAD)
-    setb TR2
-    setb ET2
-    mov  Cnt_10ms, #0
-    setb EA  ; Enable all interrupts
+    mov  	RCAP2H,#high(TIMER_RELOAD)
+    mov  	RCAP2L,#low(TIMER_RELOAD)
+    setb 	TR2
+    setb 	ET2
+    mov  	Cnt_10ms, #0
+    setb 	EA  ; Enable all interrupts
 	ret
 
 LCD_Init:
@@ -125,6 +140,8 @@ R2S_set:
 	mov		runTime+0, #00H
 	lcall	clear_LCD
 	lcall	clear_flags
+	mov		buzz_cnt, BZTIME
+	mov		buzz_loop,#2
 	setb	R2S
 	
 	mov		a, Line1
@@ -162,6 +179,8 @@ S_set:
 	mov		stateTime+1, #00H
 	mov		stateTime+0, #00H
 	lcall	clear_flags
+	mov		buzz_cnt, BZTIME
+	mov		buzz_loop,#2
 	setb	S
 	
 	mov		a, Line2
@@ -184,6 +203,8 @@ R2P_set:
 	mov		stateTime+1, #00H
 	mov		stateTime+0, #00H
 	lcall	clear_flags
+	mov		buzz_cnt, BZTIME
+	mov		buzz_loop,#2
 	setb	R2P
 	
 	mov		a, Line2
@@ -206,6 +227,8 @@ R_set:
 	mov		stateTime+1, #00H
 	mov		stateTime+0, #00H
 	lcall	clear_flags
+	mov		buzz_cnt, BZTIME
+	mov		buzz_loop,#2
 	setb	R
 	
 	mov		a, Line2
@@ -228,6 +251,10 @@ CL_set:
 	mov		stateTime+1, #00H
 	mov		stateTime+0, #00H
 	lcall	clear_flags
+	mov		buzz_cnt, BZTIME
+	;setb	osc
+	;mov		buzz_loop,#12
+	mov		buzz_loop,#10
 	setb	CL	
 	
 	mov		a, Line2
@@ -455,6 +482,7 @@ MyProgram:
 	
 	mov		last_param, #11B
 	mov		param, #11B
+	clr		bzBit
 	
 	; Default Values
 	lcall	getRtemp

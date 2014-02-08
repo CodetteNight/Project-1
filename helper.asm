@@ -9,6 +9,8 @@ Line2 	EQU #0C0H		; Move to the beginning of the second row
 Right1 	EQU #14H		; Move the cursor one space to the right
 Left1	EQU #10H		; Move the cursor one space to the left
 
+BZTIME	EQU	#25
+
 FREQ   EQU 33333333
 BAUD   EQU 115200
 T2LOAD EQU 65536-(FREQ/(32*BAUD))
@@ -20,6 +22,7 @@ MISO EQU P0.0
 MOSI EQU P0.1
 SCLK EQU P0.2
 SS   EQU P0.3
+BUZZ EQU P0.5
 
 SPI_START	EQU #00000001b ; start bit for the transmission
 CH	 		EQU #10000000b ; channel select
@@ -40,6 +43,9 @@ S_Time:		ds	2	; Soak Time -- condition from soak --> Ramp-to-peak
 R2P_Temp:	ds	2	; Reflow Temperature -- condition from Ramp-to-peak --> Reflow
 R_Time:		ds	2	; Reflow Time -- condition from Reflow --> cooling
 change:		ds	2	; Proposed change
+buzz_cnt:	ds	1	; Length of buzz
+buzz_loop:	ds	1	; Time to repeat a buzz
+
 
 	x:   	ds 4
 	y:   	ds 4
@@ -58,6 +64,8 @@ CL:		dbit	1	; Cooling state flag
 param:	dbit	2	; Flag used to tracks toggling through params in 'SET' mode
 last_param:	dbit 2	; Tracks the previous parameter when toggling
 svBit:	dbit	1	; Set bit read from SW17, 1 = save changes, 0 = discard changes
+bzBit:	dbit	1
+osc:	dbit	1	; Buzz oscillation flag
 
 mf: dbit 1
 
@@ -172,12 +180,14 @@ LCD_put_done:
 ; Clear all the state flags
 ;---------------------------------------------------
 clear_flags:
-	clr	I
-	clr	R2S
-	clr	S
-	clr	R2P
-	clr	R
-	clr	CL
+	clr		I
+	clr		R2S
+	clr		S
+	clr		R2P
+	clr		R
+	clr		CL
+	clr		osc
+	setb	bzBit
 	ret
 
 ;---------------------------------------------------
