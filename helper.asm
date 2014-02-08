@@ -7,6 +7,7 @@ $NOLIST
 Line1 	EQU #80H		; Move to the beginning of the first row
 Line2 	EQU #0C0H		; Move to the beginning of the second row
 Right1 	EQU #14H		; Move the cursor one space to the right
+Left1	EQU #10H		; Move the cursor one space to the left
 
 org 0000H
    ljmp MyProgram
@@ -26,9 +27,16 @@ S:		dbit	1	; Soak state flag
 R2P:	dbit	1	; Ramp-2-Peak state flag	
 R:		dbit	1	; Reflow state flag
 CL:		dbit	1	; Cooling state flag
-param:	dbit	2	; Flag used to toggle through params in 'SET' mode
+param:	dbit	2	; Flag used to tracks toggling through params in 'SET' mode
+last_param:	dbit 2	; Tracks the previous parameter when toggling
+sBit:	dbit	1	; Set bit read from SW17, 1 = save changes, 0 = discard changes
 
 CSEG
+
+; Look-up table for 7-segment displays
+myLUT:
+    DB 0C0H, 0F9H, 0A4H, 0B0H, 099H
+    DB 092H, 082H, 0F8H, 080H, 090H
 
 IDLE_1:
     DB  'IDLE KEY3 TO RUN',0
@@ -167,6 +175,27 @@ Wait40us_loop:
 	pop 	acc
     ret
     
+;---------------------------------------------------
+; Loops the command in a R0 times
+;---------------------------------------------------    
+loop_command:
+	push 	acc
+	push 	psw
+	push 	AR0
+	push 	AR1
+	push 	AR2
+	
+comm_loop:
+	lcall	LCD_command
+	djnz	R0, comm_loop
+	
+	pop 	AR2
+	pop 	AR1
+	pop 	AR0
+	pop 	psw
+	pop 	acc
+	ret
+
 ;---------------------------------------------------
 ; Display temperature or time stored in R1 and R0 
 ; on the LCD screen. c = 1, temperature; c = 0, time
