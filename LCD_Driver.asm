@@ -1,6 +1,6 @@
 $MODDE2
 
-$include (helper.asm)
+$include (temperatureDriver.asm)
 
 LCD_Init:
     ; Turn LCD on, and wait a bit.
