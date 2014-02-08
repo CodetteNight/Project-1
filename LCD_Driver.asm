@@ -166,7 +166,93 @@ CL_set:
     lcall	time_temp
 	ret	
 	
+params_set:
+	jnb		KEY.2, $
+	lcall	clear_LCD
+	mov		a, Line1
+	lcall	LCD_command
+	mov		dptr, #SOAK
+	lcall	SendString
+	mov		R1, R2S_Temp+1
+	mov		R0, R2S_Temp+0
+	setb	c
+	lcall	time_temp
+	mov		a, Right1
+	lcall	LCD_command
+	mov		R1, S_Time+1
+	mov		R0, S_Time+0	
+	clr		c
+    lcall	time_temp
+	
+	mov		a, Line2
+	lcall	LCD_command
+	mov		dptr, #REFLOW
+	lcall	SendString
+	mov		R1, R2P_Temp+1
+	mov		R0, R2P_Temp+0
+	setb	c
+	lcall	time_temp
+	mov		a, Right1
+	lcall	LCD_command
+	mov		R1, R_Time+1
+	mov		R0, R_Time+0	
+	clr		c
+    lcall	time_temp
+    
+toggle_params:
+	mov		last_param, param
+	mov		a, param
+	jz		Toggle0
+	mov		a, param
+	cjne	a, #11B, Toggle2
+	mov		a, Line2
+	lcall	LCD_command
+	mov		R0, #11
+	mov		a, Right1
+	lcall	loop_command
+	mov		a, #' '
+	lcall	LCD_put
+	mov		a, Line1
+	ljmp	done_toggle2
+Toggle2:
+	cjne	a, #10B, Toggle1
+	dec		param
+	mov		a, Line1
+	ljmp	Tmove_star
 
+Toggle1:
+	mov		a, Line1
+	lcall	LCD_command
+	mov		R0, #11
+	mov		a, Right1
+	lcall	loop_command
+	mov		a, #' '
+	lcall	LCD_put
+	mov		a, Line2
+done_toggle2:
+	lcall	LCD_command
+	mov		R0, #6
+	dec		param
+	ljmp	done_toggle
+	
+Toggle0:
+	mov		param, #11B
+	mov		a, Line2
+
+Tmove_star:
+	lcall	LCD_command
+	mov		R0, #6
+	mov		a, Right1
+	lcall	loop_command
+	mov		a, #' '
+	lcall	LCD_put
+	mov		R0, #4
+done_toggle:
+	mov		a, Right1
+	lcall	loop_command
+	mov		a, #'*'
+	lcall	LCD_put
+	ret
 	
 MyProgram:
 	mov 	sp, #07FH
@@ -176,7 +262,8 @@ MyProgram:
 	mov 	LEDRB, a
 	mov 	LEDRC, a
 	
-	;mov		param, #11B
+	mov		last_param, #11B
+	mov		param, #11B
 	
 	; Default Values
 	mov		roomTemp, #23H
@@ -193,8 +280,23 @@ MyProgram:
 	
     lcall 	LCD_Init
     lcall	I_set
+    ljmp	Main_loop
+Set_toggle:
+	jnb		KEY.3, $
+	mov		LEDG, param
+	lcall	toggle_params
+	ljmp	Set_loop
+Set_Mode:
+	jnb		KEY.2, $
+	lcall	params_set
+Set_loop:
+	jnb		KEY.3, Set_toggle
+	jb		KEY.2, Set_loop
+	jnb		KEY.2, $
+	mov		param, last_param
+	lcall	I_set
 Main_loop:
-	;jnb		KEY.2, params_set
+	jnb		KEY.2, Set_Mode
 	jb 		KEY.3, Main_loop
 	jnb		KEY.3, $
 	lcall	R2S_set
