@@ -312,20 +312,56 @@ Set_save:
 	cjne	a, #11B, Save2
 	mov		R2S_Temp+1, change+1
 	mov		R2S_Temp+0, change+0
+	mov		a, Line1
+	lcall	LCD_command
+	mov		R0, #7
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, R2S_Temp+1
+	mov		R0, R2S_Temp+0
+	setb	c
+	lcall	time_temp
 	ljmp	done_save
 Save2:
 	cjne	a, #10B, Save1
 	mov		S_Time+1, change+1
 	mov		S_Time+0, change+0
+	mov		a, Line1
+	lcall	LCD_command
+	mov		R0, #12
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, S_Time+1
+	mov		R0, S_Time+0
+	clr		c
+	lcall	time_temp
 	ljmp	done_save
 Save1:
 	cjne	a, #01B, Save0
 	mov		R2P_Temp+1, change+1
 	mov		R2P_Temp+0, change+0
+	mov		a, Line2
+	lcall	LCD_command
+	mov		R0, #7
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, R2P_Temp+1
+	mov		R0, R2P_Temp+0
+	setb	c
+	lcall	time_temp
 	ljmp	done_save	
 Save0:
 	mov		R_Time+1, change+1
 	mov		R_Time+0, change+0
+	mov		a, Line2
+	lcall	LCD_command
+	mov		R0, #12
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, R_Time+1
+	mov		R0, R_Time+0
+	clr		c
+	lcall	time_temp
 done_save:
 	ret
 	
@@ -359,7 +395,6 @@ MyProgram:
 Set_toggle:
 	jnb		KEY.3, $
 	lcall	set_save
-	lcall	toggle_update
 	lcall	toggle_params
 	ljmp	Set_loop
 Set_Mode:
@@ -397,7 +432,6 @@ Set_loop:
 	
 	jb		KEY.2, Set_loop
 	jnb		KEY.2, $
-	lcall	Set_save
 	mov		param, last_param
 	lcall   clear_LEDs
 	lcall	I_set
