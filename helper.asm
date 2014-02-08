@@ -176,6 +176,19 @@ Wait40us_loop:
     ret
     
 ;---------------------------------------------------
+; Sets a to 0 if > 0x9
+;--------------------------------------------------- 
+check_bound:
+	cjne	a, #0AH, check_c
+	sjmp	bound_error
+check_c:
+	jnc		bound_error
+	ret
+bound_error:
+	clr		a
+	ret
+  
+;---------------------------------------------------
 ; Loops the command in a R0 times
 ;---------------------------------------------------    
 loop_command:
