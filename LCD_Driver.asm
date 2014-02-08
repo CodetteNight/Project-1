@@ -283,7 +283,6 @@ MyProgram:
     ljmp	Main_loop
 Set_toggle:
 	jnb		KEY.3, $
-	mov		LEDG, param
 	lcall	toggle_params
 	ljmp	Set_loop
 Set_Mode:
@@ -291,6 +290,27 @@ Set_Mode:
 	lcall	params_set
 Set_loop:
 	jnb		KEY.3, Set_toggle
+	
+	mov		dptr, #myLUT
+	mov		a, SWB
+	anl		a, #0FH
+	lcall	check_bound
+	movc	a, @a+dptr
+	mov		HEX2, a
+	
+	mov		a, SWA
+	swap	a
+	anl		a, #0FH
+	lcall	check_bound
+	movc	a, @a+dptr
+	mov		HEX1, a
+	
+	mov		a, SWA
+	anl		a, #0FH
+	lcall	check_bound
+	movc	a, @a+dptr
+	mov		HEX0, a
+	
 	jb		KEY.2, Set_loop
 	jnb		KEY.2, $
 	mov		param, last_param
