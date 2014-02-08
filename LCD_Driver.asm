@@ -1,14 +1,14 @@
 $MODDE2
 
-$include (helper.asm)
+$include (SPI.asm)
 
 LCD_Init:
     ; Turn LCD on, and wait a bit.
-    setb LCD_ON
-    clr LCD_EN  ; Default state of enable must be zero
-    lcall Wait40us
+    setb 	LCD_ON
+    clr 	LCD_EN  ; Default state of enable must be zero
+    lcall 	Wait40us
     
-    mov LCD_MOD, #0xff ; Use LCD_DATA as output port
+    mov 	LCD_MOD, #0xff ; Use LCD_DATA as output port
     clr 	LCD_RW ;  Only writing to the LCD in this code.
 	
 	mov 	a, #0ch ; Display on command
@@ -32,19 +32,10 @@ I_state:
     mov 	a, Line2
 	lcall 	LCD_command
 	
-	mov 	a, Right1
-	lcall 	LCD_command
-	
-	mov		a, roomTemp
-	swap	a
-	anl		a, #0FH
-	orl		a, #30H
-	lcall	LCD_put
-	
-	mov		a, roomTemp
-	anl		a, #0FH
-	orl		a, #30H
-	lcall	LCD_put
+	mov		R1, #00H
+	mov		R0, roomTemp
+	setb	c
+	lcall	time_temp
 	
 	mov		dptr, #IDLE_2
 	lcall 	SendString
@@ -377,7 +368,7 @@ MyProgram:
 	mov		param, #11B
 	
 	; Default Values
-	mov		roomTemp, #23H
+	lcall	getRtemp
 	mov		ovenTemp+1, #01H
 	mov		ovenTemp+0, #00H
 	mov		R2S_Temp+1, #01H
@@ -389,6 +380,8 @@ MyProgram:
 	mov		R_Time+1, #00H
 	mov		R_Time+0, #45H
 	
+	
+	lcall	INIT_SPI
     lcall 	LCD_Init
     lcall	I_set
     ljmp	Main_loop
@@ -402,6 +395,11 @@ Set_Mode:
 	lcall	params_set
 Set_loop:
 	jnb		KEY.3, Set_toggle
+	
+	mov		a, SWC
+	rrc		a
+	rrc		a
+	mov		svBit, c
 	
 	mov		dptr, #myLUT
 	mov		a, SWB
@@ -425,11 +423,6 @@ Set_loop:
 	movc	a, @a+dptr
 	mov		HEX0, a
 	
-	mov		a, SWC
-	rrc		a
-	rrc		a
-	mov		svBit, c
-	
 	jb		KEY.2, Set_loop
 	jnb		KEY.2, $
 	mov		param, last_param
@@ -437,12 +430,24 @@ Set_loop:
 	lcall	I_set
 Main_loop:
 	jnb		KEY.2, Set_Mode
+	lcall	getRtemp
+	mov		a, Line2
+	lcall	LCD_command
+	mov		R1, #00H
+	mov		R0, roomTemp
+	setb	c
+	lcall	time_temp
 	jb 		KEY.3, Main_loop
 	jnb		KEY.3, $
 	lcall	R2S_set
 Main_R2S:
 	jnb		KEY.1, Main_reset
-	; do stuff
+	;lcall	getOtemp
+	;Load_X(ovenTemp)
+	;Load_Y(R2S_Temp)
+	;lcall	x_lt_y
+	;jnb	mf, Main_R2S
+	;		S_set
 	jb 		KEY.3, Main_R2S
 	jnb		KEY.3, $
 	lcall	S_set
