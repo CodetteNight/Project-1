@@ -13,6 +13,9 @@ FREQ   EQU 33333333
 BAUD   EQU 115200
 T2LOAD EQU 65536-(FREQ/(32*BAUD))
 
+CLK EQU 100
+TIMER_RELOAD EQU 65536-(FREQ/(12*CLK))
+
 MISO EQU P0.0
 MOSI EQU P0.1
 SCLK EQU P0.2
@@ -23,20 +26,27 @@ CH	 		EQU #10000000b ; channel select
 
 org 0000H
    ljmp MyProgram
+  
+org 002BH
+	ljmp ISR_timer2
    
 DSEG at 30H
 roomTemp:	ds	1	; Current room temperature
 ovenTemp:	ds	2	; Current oven temperature
+runTime:	ds	2	; Total running time in seconds
+stateTime:	ds	2	; Total running time of the current state
 R2S_Temp:	ds	2	; Soak Temperature -- condition from ramp-to-soak --> soak
 S_Time:		ds	2	; Soak Time -- condition from soak --> Ramp-to-peak
 R2P_Temp:	ds	2	; Reflow Temperature -- condition from Ramp-to-peak --> Reflow
 R_Time:		ds	2	; Reflow Time -- condition from Reflow --> cooling
 change:		ds	2	; Proposed change
 
-x:   ds 4
-y:   ds 4
-bcd: ds 5
-term:ds 4 ; four digits for the terminal access
+	x:   	ds 4
+	y:   	ds 4
+	bcd: 	ds 5
+	term:	ds 4 ; four digits for the terminal access
+
+Cnt_10ms:   ds 1
 
 BSEG
 I:		dbit	1	; Idle state flag

@@ -2,6 +2,82 @@ $MODDE2
 
 $include (SPI.asm)
 
+ISR_timer2:
+	push 	psw
+	push 	acc
+	push 	dpl
+	push 	dph
+	
+	clr  	TF2
+	
+	mov  	a, Cnt_10ms
+	inc  	a
+	mov  	Cnt_10ms, a
+	
+	cjne a, #100, end_ISR2
+	
+	mov  	Cnt_10ms, #0
+	mov  a, runTime+0
+	add  a, #1
+	da   a
+	mov  runTime+0, a
+	cjne a, #99H, cont1
+	mov  a, runTime+1
+	add  a, #1
+	da   a
+	mov  runTime+1, a
+cont1:
+	mov  a, stateTime+0
+	add  a, #1
+	da   a
+	mov  stateTime+0, a
+	cjne a, #99H, cont2
+	mov  a, stateTime+1
+	add  a, #1
+	da   a
+	mov  stateTime+1, a
+cont2:
+	mov		a, Line1
+	lcall	LCD_command
+	mov		R0, #12
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, runTime+1
+	mov		R0, runTime+0
+	clr		c
+	lcall	time_temp
+	
+	mov		a, Line2
+	lcall	LCD_command
+	mov		R0, #12
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, stateTime+1
+	mov		R0, stateTime+0
+	clr		c
+	lcall	time_temp
+
+end_ISR2:
+	pop 	dph
+	pop 	dpl
+	pop 	acc
+	pop 	psw	
+	reti
+
+Timer_Init:
+	mov  TMOD,  #00000001B ; GATE=0, C/T*=0, M1=0, M0=1: 16-bit timer
+	mov  T2CON, #00H ; Autoreload is enabled, work as a timer
+    clr  TR2
+    clr  TF2
+    ; Set up timer 2 to interrupt every 10ms
+    mov  RCAP2H,#high(TIMER_RELOAD)
+    mov  RCAP2L,#low(TIMER_RELOAD)
+    setb TR2
+    setb ET2
+    mov  Cnt_10ms, #0
+    setb EA  ; Enable all interrupts
+	ret
+
 LCD_Init:
     ; Turn LCD on, and wait a bit.
     setb 	LCD_ON
@@ -19,6 +95,7 @@ LCD_Init:
 	ret 
 	
 I_set:
+	clr  	TR2 ; Disable timer 0
 	lcall	clear_LCD
 	lcall	clear_flags
 	setb	I
@@ -42,6 +119,10 @@ I_state:
 	ret
 	
 R2S_set:
+	mov		stateTime+1, #00H
+	mov		stateTime+0, #00H
+	mov		runTime+1, #00H
+	mov		runTime+0, #00H
 	lcall	clear_LCD
 	lcall	clear_flags
 	setb	R2S
@@ -56,8 +137,8 @@ R2S_set:
     lcall	time_temp
     mov		a, Right1
 	lcall	LCD_command
-	mov		R1, #00H
-	mov		R0, #00H
+	mov		R1, runTime+1
+	mov		R0, runTime+0
 	clr		c
 	lcall	time_temp
     
@@ -71,13 +152,15 @@ R2S_set:
 	lcall	time_temp
 	mov		a, Right1
 	lcall	LCD_command
-	mov		R1, #00H
-	mov		R0, #00H
+	mov		R1, stateTime+1
+	mov		R0, stateTime+0
 	clr		c
     lcall	time_temp
 	ret
 	
 S_set:
+	mov		stateTime+1, #00H
+	mov		stateTime+0, #00H
 	lcall	clear_flags
 	setb	S
 	
@@ -91,13 +174,15 @@ S_set:
 	lcall	time_temp
 	mov		a, Right1
 	lcall	LCD_command
-	mov		R1, #00H
-	mov		R0, #00H	
+	mov		R1, stateTime+1
+	mov		R0, stateTime+0	
 	clr		c
     lcall	time_temp
 	ret
 	
 R2P_set:
+	mov		stateTime+1, #00H
+	mov		stateTime+0, #00H
 	lcall	clear_flags
 	setb	R2P
 	
@@ -111,13 +196,15 @@ R2P_set:
 	lcall	time_temp
 	mov		a, Right1
 	lcall	LCD_command
-	mov		R1, #00H
-	mov		R0, #00H	
+	mov		R1, stateTime+1
+	mov		R0, stateTime+0	
 	clr		c
     lcall	time_temp
 	ret
 	
 R_set:
+	mov		stateTime+1, #00H
+	mov		stateTime+0, #00H
 	lcall	clear_flags
 	setb	R
 	
@@ -131,13 +218,15 @@ R_set:
 	lcall	time_temp
 	mov		a, Right1
 	lcall	LCD_command
-	mov		R1, #00H
-	mov		R0, #00H	
+	mov		R1, stateTime+1
+	mov		R0, stateTime+0	
 	clr		c
     lcall	time_temp
 	ret
 	
 CL_set:
+	mov		stateTime+1, #00H
+	mov		stateTime+0, #00H
 	lcall	clear_flags
 	setb	CL	
 	
@@ -151,8 +240,8 @@ CL_set:
 	lcall	time_temp
 	mov		a, Right1
 	lcall	LCD_command
-	mov		R1, #00H
-	mov		R0, #00H	
+	mov		R1, stateTime+1
+	mov		R0, stateTime+0	
 	clr		c
     lcall	time_temp
 	ret	
@@ -380,9 +469,9 @@ MyProgram:
 	mov		R_Time+1, #00H
 	mov		R_Time+0, #45H
 	
-	
 	lcall	INIT_SPI
     lcall 	LCD_Init
+    lcall	Timer_Init
     lcall	I_set
     ljmp	Main_loop
 Set_toggle:
@@ -440,6 +529,8 @@ Main_loop:
 	jb 		KEY.3, Main_loop
 	jnb		KEY.3, $
 	lcall	R2S_set
+	setb 	TR2 ; Enable timer 0
+    setb 	ET2 ; Enable timer 0 interrupt
 Main_R2S:
 	jnb		KEY.1, Main_reset
 	;lcall	getOtemp
@@ -450,25 +541,39 @@ Main_R2S:
 	;		S_set
 	jb 		KEY.3, Main_R2S
 	jnb		KEY.3, $
+	clr 	TR2
 	lcall	S_set
+	setb 	TR2 ; Enable timer 0
+    setb 	ET2 ; Enable timer 0 interrupt
 Main_Soak:
 	jnb		KEY.1, Main_reset
-	; do stuff
-	jb 		KEY.3, Main_Soak
-	jnb		KEY.3, $
+	mov		a, S_Time+1
+	cjne	a, stateTime+1, Main_Soak
+	mov		a, S_Time+0
+	cjne	a, stateTime+0, Main_Soak
+	clr 	TR2
 	lcall	R2P_set
+	setb 	TR2 ; Enable timer 0
+    setb 	ET2 ; Enable timer 0 interrupt
 Main_R2P:
 	jnb		KEY.1, Main_reset
 	; do stuff
 	jb 		KEY.3, Main_R2P
 	jnb		KEY.3, $
+	clr 	TR2
 	lcall	R_set
+	setb 	TR2 ; Enable timer 0
+    setb 	ET2 ; Enable timer 0 interrupt
 Main_Reflow:
 	jnb		KEY.1, Main_reset
-	; do stuff
-	jb 		KEY.3, Main_Reflow
-	jnb		KEY.3, $
+	mov		a, R_Time+1
+	cjne	a, stateTime+1, Main_Reflow
+	mov		a, R_Time+0
+	cjne	a, stateTime+0, Main_Reflow
+	clr 	TR2
 	lcall	CL_set
+	setb 	TR2 ; Enable timer 0
+    setb 	ET2 ; Enable timer 0 interrupt
 Main_cool:
 	jnb		KEY.1, Main_reset
 	; do stuff
