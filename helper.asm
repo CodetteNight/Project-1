@@ -9,6 +9,18 @@ Line2 	EQU #0C0H		; Move to the beginning of the second row
 Right1 	EQU #14H		; Move the cursor one space to the right
 Left1	EQU #10H		; Move the cursor one space to the left
 
+FREQ   EQU 33333333
+BAUD   EQU 115200
+T2LOAD EQU 65536-(FREQ/(32*BAUD))
+
+MISO EQU P0.0
+MOSI EQU P0.1
+SCLK EQU P0.2
+SS   EQU P0.3
+
+SPI_START	EQU #00000001b ; start bit for the transmission
+CH	 		EQU #10000000b ; channel select
+
 org 0000H
    ljmp MyProgram
    
@@ -21,6 +33,11 @@ R2P_Temp:	ds	2	; Reflow Temperature -- condition from Ramp-to-peak --> Reflow
 R_Time:		ds	2	; Reflow Time -- condition from Reflow --> cooling
 change:		ds	2	; Proposed change
 
+x:   ds 4
+y:   ds 4
+bcd: ds 5
+term:ds 4 ; four digits for the terminal access
+
 BSEG
 I:		dbit	1	; Idle state flag
 R2S:	dbit	1	; Ramp-2-Soak state flag
@@ -32,6 +49,8 @@ param:	dbit	2	; Flag used to tracks toggling through params in 'SET' mode
 last_param:	dbit 2	; Tracks the previous parameter when toggling
 svBit:	dbit	1	; Set bit read from SW17, 1 = save changes, 0 = discard changes
 
+mf: dbit 1
+
 CSEG
 
 ; Look-up table for 7-segment displays
@@ -42,7 +61,7 @@ myLUT:
 IDLE_1:
     DB  'IDLE KEY3 TO RUN',0
 IDLE_2:
-	DB	'C KEY2 TO SET', 0 
+	DB	' KEY2 TO SET', 0 
 SRAMP:
 	DB	'SRAMP  ',0
 SOAK:
@@ -202,6 +221,7 @@ check_c:
 	ret
 bound_error:
 	clr		a
+	clr		svBit
 	ret
   
 ;---------------------------------------------------
@@ -266,5 +286,5 @@ LCD_temp:
 	pop 	psw
 	pop 	acc
     ret		
-	
+   
 $LIST
