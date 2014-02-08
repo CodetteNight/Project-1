@@ -19,6 +19,7 @@ R2S_Temp:	ds	2	; Soak Temperature -- condition from ramp-to-soak --> soak
 S_Time:		ds	2	; Soak Time -- condition from soak --> Ramp-to-peak
 R2P_Temp:	ds	2	; Reflow Temperature -- condition from Ramp-to-peak --> Reflow
 R_Time:		ds	2	; Reflow Time -- condition from Reflow --> cooling
+change:		ds	2	; Proposed change
 
 BSEG
 I:		dbit	1	; Idle state flag
@@ -29,7 +30,7 @@ R:		dbit	1	; Reflow state flag
 CL:		dbit	1	; Cooling state flag
 param:	dbit	2	; Flag used to tracks toggling through params in 'SET' mode
 last_param:	dbit 2	; Tracks the previous parameter when toggling
-sBit:	dbit	1	; Set bit read from SW17, 1 = save changes, 0 = discard changes
+svBit:	dbit	1	; Set bit read from SW17, 1 = save changes, 0 = discard changes
 
 CSEG
 
@@ -77,6 +78,21 @@ clear_loop:
 	pop 	AR0
 	pop 	psw
 	pop 	acc
+	ret
+	
+;---------------------------------------------------
+; Clear the LEDs
+;---------------------------------------------------
+Clear_LEDs:
+	mov		a, #0FFH
+	mov 	HEX7, a
+	mov 	HEX6, a
+	mov 	HEX5, a
+	mov 	HEX4, a
+	mov 	HEX3, a
+	mov 	HEX2, a
+	mov 	HEX1, a
+	mov 	HEX0, a
 	ret
 	
 ;---------------------------------------------------

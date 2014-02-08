@@ -254,6 +254,81 @@ done_toggle:
 	lcall	LCD_put
 	ret
 	
+toggle_update:
+	jnb		svBit, done_update
+	mov		a, last_param
+	cjne	a, #11B, Update2
+	mov		a, Line1
+	lcall	LCD_command
+	mov		R0, #7
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, R2S_Temp+1
+	mov		R0, R2S_Temp+0
+	setb	c
+	lcall	time_temp
+	ljmp	done_update
+Update2:
+	cjne	a, #10B, Update1
+	mov		a, Line1
+	lcall	LCD_command
+	mov		R0, #12
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, R2S_Temp+1
+	mov		R0, R2S_Temp+0
+	clr		c
+	lcall	time_temp
+	ljmp	done_update
+Update1:
+	cjne	a, #01B, Update0
+	mov		a, Line2
+	lcall	LCD_command
+	mov		R0, #7
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, R2S_Temp+1
+	mov		R0, R2S_Temp+0
+	setb	c
+	lcall	time_temp
+	ljmp	done_update	
+Update0:
+	mov		a, Line2
+	lcall	LCD_command
+	mov		R0, #12
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, R2S_Temp+1
+	mov		R0, R2S_Temp+0
+	clr		c
+	lcall	time_temp
+	
+done_update:
+	ret	
+	
+Set_save:
+	jnb		svBit, done_save
+	mov		a, last_param
+	cjne	a, #11B, Save2
+	mov		R2S_Temp+1, change+1
+	mov		R2S_Temp+0, change+0
+	ljmp	done_save
+Save2:
+	cjne	a, #10B, Save1
+	mov		S_Time+1, change+1
+	mov		S_Time+0, change+0
+	ljmp	done_save
+Save1:
+	cjne	a, #01B, Save0
+	mov		R2P_Temp+1, change+1
+	mov		R2P_Temp+0, change+0
+	ljmp	done_save	
+Save0:
+	mov		R_Time+1, change+1
+	mov		R_Time+0, change+0
+done_save:
+	ret
+	
 MyProgram:
 	mov 	sp, #07FH
 	clr 	a
@@ -283,6 +358,8 @@ MyProgram:
     ljmp	Main_loop
 Set_toggle:
 	jnb		KEY.3, $
+	lcall	set_save
+	lcall	toggle_update
 	lcall	toggle_params
 	ljmp	Set_loop
 Set_Mode:
@@ -294,11 +371,13 @@ Set_loop:
 	mov		dptr, #myLUT
 	mov		a, SWB
 	anl		a, #0FH
+	mov		change+1, a
 	lcall	check_bound
 	movc	a, @a+dptr
 	mov		HEX2, a
 	
 	mov		a, SWA
+	mov		change+0, a
 	swap	a
 	anl		a, #0FH
 	lcall	check_bound
@@ -311,9 +390,16 @@ Set_loop:
 	movc	a, @a+dptr
 	mov		HEX0, a
 	
+	mov		a, SWC
+	rrc		a
+	rrc		a
+	mov		svBit, c
+	
 	jb		KEY.2, Set_loop
 	jnb		KEY.2, $
+	lcall	Set_save
 	mov		param, last_param
+	lcall   clear_LEDs
 	lcall	I_set
 Main_loop:
 	jnb		KEY.2, Set_Mode
