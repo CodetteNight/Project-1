@@ -9,7 +9,9 @@ Line2 	EQU #0C0H		; Move to the beginning of the second row
 Right1 	EQU #14H		; Move the cursor one space to the right
 Left1	EQU #10H		; Move the cursor one space to the left
 
-BZTIME	EQU	#25
+BZTIME	EQU	#50
+
+T0LOAD EQU 65536-(CLK/(12*2*FREQ))
 
 CLK EQU 33333333
 FREQ EQU 100
@@ -29,6 +31,9 @@ CH	 		EQU #10000000b ; channel select
 
 org 0000H
    ljmp MyProgram
+  
+org 000BH
+	ljmp ISR_timer0  
   
 org 001BH
 	ljmp ISR_timer1
@@ -66,6 +71,7 @@ last_param:	dbit 2	; Tracks the previous parameter when toggling
 svBit:	dbit	1	; Set bit read from SW17, 1 = save changes, 0 = discard changes
 bzBit:	dbit	1
 osc:	dbit	1	; Buzz oscillation flag
+sendBit:dbit	1
 
 mf: dbit 1
 

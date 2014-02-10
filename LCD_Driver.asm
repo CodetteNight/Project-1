@@ -2,6 +2,37 @@ $MODDE2
 
 $include (SPI.asm)
 
+ISR_timer0:
+	push 	psw
+	push 	acc
+	push 	dpl
+	push 	dph
+	
+	mov 	TH0, #high(T0LOAD)
+    mov 	TL0, #low(T0LOAD)
+    clr		TF0
+	
+	mov		a, buzz_loop
+	jz		end_ISR0
+	jnb		bzBit, oscBuzz
+	cpl		BUZZ
+oscBuzz:
+	djnz	buzz_cnt, end_ISR0
+	djnz	buzz_loop, fillBuzz
+	clr		bzBit
+	ljmp	end_ISR0
+fillBuzz:
+	mov		buzz_cnt, BZTIME
+	jnb		osc, end_ISR0
+	cpl		bzBit
+	
+end_ISR0:	
+	pop 	dph
+	pop 	dpl
+	pop 	acc
+	pop 	psw
+	reti
+
 ISR_timer1:
 	push 	psw
 	push 	acc
@@ -13,27 +44,12 @@ ISR_timer1:
 	
 	clr  	TF1
 	
-	mov		a, buzz_loop
-	jz		noBuzz
-	jnb		bzBit, oscBuzz
-	cpl		BUZZ
-oscBuzz:
-	djnz	buzz_cnt, noBuzz
-	djnz	buzz_loop, fillBuzz
-	clr		bzBit
-	ljmp	noBuzz
-fillBuzz:
-	mov		buzz_cnt, BZTIME
-	jnb		osc, noBuzz
-	cpl		bzBit
-
-noBuzz:
 	mov  	a, Cnt_10ms
 	inc  	a
 	mov  	Cnt_10ms, a
 	
 	cjne 	a, #100, end_ISR1
-	lcall	sendTemp
+	setb	sendBit
 	mov  	Cnt_10ms, #0
 	mov  	a, runTime+0
 	add  	a, #1
@@ -82,13 +98,21 @@ end_ISR1:
 	reti
 
 Init_timers:
-    mov 	TMOD,  #10H ; GATE=0, C/T*=0, M1=0, M0=1: 16-bit timer
-	clr 	TR1 ; Disable timer 1
+    mov 	TMOD,  #11H ; GATE=0, C/T*=0, M1=0, M0=1: 16-bit timer
+	clr 	TR0 ; Disable timer 0
+	clr 	TF0
+    mov 	TH0, #high(T0LOAD)
+    mov 	TL0, #low(T0LOAD)
+    setb 	TR0 ; Enable timer 0
+    setb 	ET0 ; Enable timer 0 interrupt
+    
+    clr 	TR1 ; Disable timer 1
 	clr 	TF1
     mov 	TH1, #high(T1LOAD)
     mov 	TL1, #low(T1LOAD)
     mov		Cnt_10ms, #0
     setb 	ET1 ; Enable timer 1 interrupt
+    
 	; Configure serial port and baud rate
 	clr 	TR2 ; Disable timer 2
 	mov 	T2CON, #30H ; RCLK=1, TCLK=1
@@ -258,9 +282,9 @@ CL_set:
 	mov		stateTime+0, #00H
 	lcall	clear_flags
 	mov		buzz_cnt, BZTIME
-	;setb	osc
-	;mov		buzz_loop,#12
-	mov		buzz_loop,#10
+	setb	osc
+	mov		buzz_loop,#12
+	;mov		buzz_loop,#10
 	setb	CL	
 	
 	mov		a, Line2
@@ -492,8 +516,7 @@ MyProgram:
 	
 	; Default Values
 	lcall	getRtemp
-	mov		ovenTemp+1, #01H
-	mov		ovenTemp+0, #00H
+	lcall	getOtemp
 	mov		R2S_Temp+1, #01H
 	mov		R2S_Temp+0, #50H
 	mov		S_Time+1, #00H
@@ -566,12 +589,13 @@ Main_loop:
     setb 	TR1 ; Enable timer 1
 Main_R2S:
 	jnb		KEY.1, Main_reset
-	;lcall	getOtemp
+	lcall	getOtemp
 	;Load_X(ovenTemp)
 	;Load_Y(R2S_Temp)
 	;lcall	x_lt_y
 	;jnb	mf, Main_R2S
 	;		S_set
+	lcall	sendTemp
 	jb 		KEY.3, Main_R2S
 	jnb		KEY.3, $
 	clr  	TR1 ; Disable timer 1
@@ -579,6 +603,8 @@ Main_R2S:
     setb 	TR1 ; Enable timer 1
 Main_Soak:
 	jnb		KEY.1, Main_reset
+	lcall	getOtemp
+	lcall	sendTemp
 	mov		a, S_Time+1
 	cjne	a, stateTime+1, Main_Soak
 	mov		a, S_Time+0
@@ -588,7 +614,9 @@ Main_Soak:
     setb 	TR1 ; Enable timer 1
 Main_R2P:
 	jnb		KEY.1, Main_reset
+	lcall	getOtemp
 	; do stuff
+	lcall	sendTemp
 	jb 		KEY.3, Main_R2P
 	jnb		KEY.3, $
 	clr  	TR1 ; Disable timer 1
@@ -596,6 +624,8 @@ Main_R2P:
     setb 	TR1 ; Enable timer 1
 Main_Reflow:
 	jnb		KEY.1, Main_reset
+	lcall	getOtemp
+	lcall	sendTemp
 	mov		a, R_Time+1
 	cjne	a, stateTime+1, Main_Reflow
 	mov		a, R_Time+0
@@ -605,7 +635,9 @@ Main_Reflow:
     setb 	TR1 ; Enable timer 1
 Main_cool:
 	jnb		KEY.1, Main_reset
+	lcall	getOtemp
 	; do stuff
+	lcall	sendTemp
 	jb 		KEY.3, Main_cool
 	jnb		KEY.3, $
 	ljmp	Main_done

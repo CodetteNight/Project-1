@@ -10,6 +10,7 @@ putchar:
     RET
 
 sendTemp:
+	jnb		sendBit, doneSendTemp
 	mov		a, ovenTemp+1
 	anl		a, #0FH
 	orl		a, #30H
@@ -27,6 +28,8 @@ sendTemp:
 	lcall	putchar
 	mov		a, #'\r'
 	lcall	putchar
+	clr		sendBit
+doneSendTemp:
 	ret
 
 delay:
@@ -97,6 +100,17 @@ send_term:
 	lcall hex2bcd
 	
 	mov roomTemp, bcd+0
+	ret
+
+getOtemp:
+	lcall	getRtemp
+	load_x(roomTemp)
+	lcall	bcd2hex
+	load_y(20)
+	lcall	add32
+	lcall	hex2bcd
+	mov		ovenTemp+1, bcd+1
+	mov		ovenTemp+0, bcd+0
 	ret
 
 getRtemp:
