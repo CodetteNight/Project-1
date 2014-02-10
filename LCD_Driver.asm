@@ -48,7 +48,31 @@ ISR_timer1:
 	inc  	a
 	mov  	Cnt_10ms, a
 	
+	jnb		pwmBit, pwm20
+	cjne	a, #25, pwm100_1
+	cpl		LEDRA.0
+pwm100_1:
+	cjne 	a, #50, pwm100_2
+	cpl		LEDRA.0
+pwm100_2:
+	cjne 	a, #75, pwm100_3
+	cpl		LEDRA.0
+pwm100_3:
 	cjne 	a, #100, end_ISR1
+	cpl		LEDRA.0
+	ljmp	pwmCont
+pwm20:
+	jnb		CL, pwm20_1
+	clr		LEDRA.0
+	cjne 	a, #100, end_ISR1
+	ljmp	pwmCont
+pwm20_1:
+	cjne 	a, #50, pwm20_2
+	cpl		LEDRA.0
+pwm20_2:
+	cjne 	a, #100, end_ISR1
+	cpl		LEDRA.0
+pwmCont:
 	setb	sendBit
 	mov  	Cnt_10ms, #0
 	mov  	a, runTime+0
@@ -144,7 +168,8 @@ I_set:
 	lcall	clear_LCD
 	lcall	clear_flags
 	setb	I
-I_state:
+	clr		LEDRA.0
+
     mov		a, Line1
     lcall	LCD_command
     
@@ -173,6 +198,7 @@ R2S_set:
 	mov		buzz_cnt, BZTIME
 	mov		buzz_loop,#2
 	setb	R2S
+	setb	pwmBit
 	
 	mov		a, Line1
 	lcall	LCD_command
@@ -236,6 +262,7 @@ R2P_set:
 	mov		buzz_cnt, BZTIME
 	mov		buzz_loop,#2
 	setb	R2P
+	setb	pwmBit
 	
 	mov		a, Line2
 	lcall	LCD_command

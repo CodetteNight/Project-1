@@ -71,7 +71,8 @@ last_param:	dbit 2	; Tracks the previous parameter when toggling
 svBit:	dbit	1	; Set bit read from SW17, 1 = save changes, 0 = discard changes
 bzBit:	dbit	1
 osc:	dbit	1	; Buzz oscillation flag
-sendBit:dbit	1
+sendBit:dbit	1	; Flag for sending data/second
+pwmBit:	dbit	1	; 0 = 20% 1 = 100%
 
 mf: dbit 1
 
@@ -194,6 +195,7 @@ clear_flags:
 	clr		CL
 	clr		osc
 	setb	bzBit
+	clr		pwmBit
 	ret
 
 ;---------------------------------------------------
