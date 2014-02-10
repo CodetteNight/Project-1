@@ -3,6 +3,32 @@ $NOLIST
 $include (helper.asm)
 $include (math32.asm)
 
+putchar:
+    JNB 	TI, putchar
+    CLR 	TI
+    MOV 	SBUF, a
+    RET
+
+sendTemp:
+	mov		a, ovenTemp+1
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	putchar
+	mov		a, ovenTemp+0
+	swap	a
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	putchar
+	mov		a, ovenTemp+0
+	anl		a, #0FH
+	orl		a, #30H
+	lcall	putchar
+	mov		a, #'\n'
+	lcall	putchar
+	mov		a, #'\r'
+	lcall	putchar
+	ret
+
 delay:
 	; delay 50ms
 	mov R2, #38

@@ -11,12 +11,12 @@ Left1	EQU #10H		; Move the cursor one space to the left
 
 BZTIME	EQU	#25
 
-FREQ   EQU 33333333
-BAUD   EQU 115200
-T2LOAD EQU 65536-(FREQ/(32*BAUD))
+CLK EQU 33333333
+FREQ EQU 100
+T1LOAD EQU 65536-(CLK/(12*FREQ))
 
-CLK EQU 100
-TIMER_RELOAD EQU 65536-(FREQ/(12*CLK))
+BAUD EQU 115200
+T2LOAD EQU 65536-(CLK/(32*BAUD))
 
 MISO EQU P0.0
 MOSI EQU P0.1
@@ -30,8 +30,8 @@ CH	 		EQU #10000000b ; channel select
 org 0000H
    ljmp MyProgram
   
-org 002BH
-	ljmp ISR_timer2
+org 001BH
+	ljmp ISR_timer1
    
 DSEG at 30H
 roomTemp:	ds	1	; Current room temperature

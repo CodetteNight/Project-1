@@ -2,13 +2,16 @@ $MODDE2
 
 $include (SPI.asm)
 
-ISR_timer2:
+ISR_timer1:
 	push 	psw
 	push 	acc
 	push 	dpl
 	push 	dph
 	
-	clr  	TF2
+	mov TH1, #high(T1LOAD)
+    mov TL1, #low(T1LOAD)
+	
+	clr  	TF1
 	
 	mov		a, buzz_loop
 	jz		noBuzz
@@ -29,8 +32,8 @@ noBuzz:
 	inc  	a
 	mov  	Cnt_10ms, a
 	
-	cjne 	a, #100, end_ISR2
-	
+	cjne 	a, #100, end_ISR1
+	lcall	sendTemp
 	mov  	Cnt_10ms, #0
 	mov  	a, runTime+0
 	add  	a, #1
@@ -71,25 +74,28 @@ cont2:
 	mov		R0, stateTime+0
 	clr		c
 	lcall	time_temp
-
-end_ISR2:
+end_ISR1:
 	pop 	dph
 	pop 	dpl
 	pop 	acc
 	pop 	psw	
 	reti
 
-Timer_Init:
-	mov  	TMOD,  #00000001B ; GATE=0, C/T*=0, M1=0, M0=1: 16-bit timer
-	mov  	T2CON, #00H ; Autoreload is enabled, work as a timer
-    clr  	TR2
-    clr  	TF2
-    ; Set up timer 2 to interrupt every 10ms
-    mov  	RCAP2H,#high(TIMER_RELOAD)
-    mov  	RCAP2L,#low(TIMER_RELOAD)
-    setb 	TR2
-    setb 	ET2
-    mov  	Cnt_10ms, #0
+Init_timers:
+    mov 	TMOD,  #10H ; GATE=0, C/T*=0, M1=0, M0=1: 16-bit timer
+	clr 	TR1 ; Disable timer 1
+	clr 	TF1
+    mov 	TH1, #high(T1LOAD)
+    mov 	TL1, #low(T1LOAD)
+    mov		Cnt_10ms, #0
+    setb 	ET1 ; Enable timer 1 interrupt
+	; Configure serial port and baud rate
+	clr 	TR2 ; Disable timer 2
+	mov 	T2CON, #30H ; RCLK=1, TCLK=1
+	mov 	RCAP2H, #high(T2LOAD)
+	mov 	RCAP2L, #low(T2LOAD)
+	setb 	TR2 ; Enable timer 2
+	mov 	SCON, #52H
     setb 	EA  ; Enable all interrupts
 	ret
 
@@ -110,7 +116,7 @@ LCD_Init:
 	ret 
 	
 I_set:
-	clr  	TR2 ; Disable timer 0
+	clr  	TR1 ; Disable timer 1
 	lcall	clear_LCD
 	lcall	clear_flags
 	setb	I
@@ -497,9 +503,9 @@ MyProgram:
 	mov		R_Time+1, #00H
 	mov		R_Time+0, #45H
 	
+	lcall	Init_timers
 	lcall	INIT_SPI
     lcall 	LCD_Init
-    lcall	Timer_Init
     lcall	I_set
     ljmp	Main_loop
 Set_toggle:
@@ -557,8 +563,7 @@ Main_loop:
 	jb 		KEY.3, Main_loop
 	jnb		KEY.3, $
 	lcall	R2S_set
-	setb 	TR2 ; Enable timer 0
-    setb 	ET2 ; Enable timer 0 interrupt
+    setb 	TR1 ; Enable timer 1
 Main_R2S:
 	jnb		KEY.1, Main_reset
 	;lcall	getOtemp
@@ -569,39 +574,35 @@ Main_R2S:
 	;		S_set
 	jb 		KEY.3, Main_R2S
 	jnb		KEY.3, $
-	clr 	TR2
+	clr  	TR1 ; Disable timer 1
 	lcall	S_set
-	setb 	TR2 ; Enable timer 0
-    setb 	ET2 ; Enable timer 0 interrupt
+    setb 	TR1 ; Enable timer 1
 Main_Soak:
 	jnb		KEY.1, Main_reset
 	mov		a, S_Time+1
 	cjne	a, stateTime+1, Main_Soak
 	mov		a, S_Time+0
 	cjne	a, stateTime+0, Main_Soak
-	clr 	TR2
+	clr  	TR1 ; Disable timer 1
 	lcall	R2P_set
-	setb 	TR2 ; Enable timer 0
-    setb 	ET2 ; Enable timer 0 interrupt
+    setb 	TR1 ; Enable timer 1
 Main_R2P:
 	jnb		KEY.1, Main_reset
 	; do stuff
 	jb 		KEY.3, Main_R2P
 	jnb		KEY.3, $
-	clr 	TR2
+	clr  	TR1 ; Disable timer 1
 	lcall	R_set
-	setb 	TR2 ; Enable timer 0
-    setb 	ET2 ; Enable timer 0 interrupt
+    setb 	TR1 ; Enable timer 1
 Main_Reflow:
 	jnb		KEY.1, Main_reset
 	mov		a, R_Time+1
 	cjne	a, stateTime+1, Main_Reflow
 	mov		a, R_Time+0
 	cjne	a, stateTime+0, Main_Reflow
-	clr 	TR2
+	clr  	TR1 ; Disable timer 1
 	lcall	CL_set
-	setb 	TR2 ; Enable timer 0
-    setb 	ET2 ; Enable timer 0 interrupt
+    setb 	TR1 ; Enable timer 1
 Main_cool:
 	jnb		KEY.1, Main_reset
 	; do stuff
