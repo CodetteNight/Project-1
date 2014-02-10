@@ -49,17 +49,8 @@ ISR_timer1:
 	mov  	Cnt_10ms, a
 	
 	jnb		pwmBit, pwm20
-	cjne	a, #25, pwm100_1
-	cpl		LEDRA.0
-pwm100_1:
-	cjne 	a, #50, pwm100_2
-	cpl		LEDRA.0
-pwm100_2:
-	cjne 	a, #75, pwm100_3
-	cpl		LEDRA.0
-pwm100_3:
+	setb	LEDRA.0
 	cjne 	a, #100, end_ISR1
-	cpl		LEDRA.0
 	ljmp	pwmCont
 pwm20:
 	jnb		CL, pwm20_1
