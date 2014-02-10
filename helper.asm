@@ -27,7 +27,8 @@ SS   EQU P0.3
 BUZZ EQU P0.5
 
 SPI_START	EQU #00000001b ; start bit for the transmission
-CH	 		EQU #10000000b ; channel select
+CH0_room	EQU #10000000b ; Channel 0 select - room temp
+CH1_tc		EQU #10010000b ; Channel 1 select - thermocouple(tc)
 
 org 0000H
    ljmp MyProgram

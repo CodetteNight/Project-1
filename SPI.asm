@@ -66,11 +66,11 @@ INIT_SPI:
 	clr SCLK
 	ret
 
-send_term:
+convert_room:
 	; R1 = bits 0~7
 	; R7 = bits 8,9
 	
-	; reset data (just in case ;D)
+	; reset data
 	mov x+0, #0
 	mov x+1, #0
 	mov x+2, #0
@@ -97,39 +97,106 @@ send_term:
 	load_y(273)
 	
 	lcall sub32
-	lcall hex2bcd
+	ret
+
+convert_tc:
+	; R1 = bits 0~7
+	; R7 = bits 8,9
 	
-	mov roomTemp, bcd+0
+	; reset data
+	mov x+0, #0
+	mov x+1, #0
+	mov x+2, #0
+	mov x+3, #0
+	mov y+0, #0
+	mov y+1, #0
+	mov y+2, #0
+	mov y+3, #0
+	mov bcd+0, #0
+	mov bcd+1, #0
+	mov bcd+2, #0
+	mov bcd+3, #0
+	
+	mov a, R1
+	mov x+0, a
+	mov a, R7
+	mov x+1, a
+	
+	
+	load_y(15625)	
+	lcall mul32
+	load_y(61664)
+	lcall div32
 	ret
 
 getOtemp:
 	lcall	getRtemp
+	
 	load_x(roomTemp)
 	lcall	bcd2hex
-	load_y(20)
+	mov		roomTemp, x+0
+	lcall	getTCtemp
+	mov		y+3, #00H
+	mov		y+2, #00H
+	mov		y+1, #00H
+	mov		y+0, roomTemp
 	lcall	add32
 	lcall	hex2bcd
 	mov		ovenTemp+1, bcd+1
 	mov		ovenTemp+0, bcd+0
 	ret
 
-getRtemp:
-	clr SS
+dispOtemp:
+	mov		a, Line1
+	lcall	LCD_command
+	mov		R0, #7
+	mov		a, Right1
+	lcall	loop_command
+	mov		R1, OvenTemp+1
+	mov		R0, OvenTemp+0	
+	setb	c
+    lcall	time_temp
+	ret
+
+getRtemp:	; Result will be in BCD in roomTemp
+	clr 	SS
 	
-	mov R1, #0
-	mov R7, #0
+	mov 	R1, #0
+	mov 	R7, #0
 	
-	mov R0, SPI_START
-	lcall do_SPI
-	mov R0, CH
-	lcall do_SPI
-	mov a, R1
-	anl a, #3
-	mov R7, a ; R7 = bit 8, 9
-	lcall do_SPI ; R1 = bit 0 ~ 7
-	setb SS
-	lcall send_term
-	lcall delay
+	mov 	R0, SPI_START
+	lcall 	do_SPI
+	mov 	R0, CH0_room
+	lcall 	do_SPI
+	mov 	a, R1
+	anl 	a, #3
+	mov 	R7, a ; R7 = bit 8, 9
+	lcall 	do_SPI ; R1 = bit 0 ~ 7
+	setb 	SS
+	lcall 	convert_room
+	lcall	hex2bcd
+	mov		roomTemp, bcd+0	
+	lcall 	delay
+	
+	ret
+
+getTCtemp:	; Result will be in x
+	clr 	SS
+	
+	mov 	R1, #0
+	mov 	R7, #0
+	
+	mov 	R0, SPI_START
+	lcall 	do_SPI
+	mov 	R0, CH1_tc
+	lcall 	do_SPI
+	mov 	a, R1
+	anl 	a, #3
+	mov 	R7, a ; R7 = bit 8, 9
+	lcall 	do_SPI ; R1 = bit 0 ~ 7
+	setb 	SS
+	lcall 	convert_tc
+	lcall 	delay
 	
 	ret
 

@@ -608,6 +608,7 @@ Main_loop:
 Main_R2S:
 	jnb		KEY.1, Main_reset
 	lcall	getOtemp
+	lcall	dispOtemp
 	;Load_X(ovenTemp)
 	;Load_Y(R2S_Temp)
 	;lcall	x_lt_y
@@ -622,6 +623,7 @@ Main_R2S:
 Main_Soak:
 	jnb		KEY.1, Main_reset
 	lcall	getOtemp
+	lcall	dispOtemp
 	lcall	sendTemp
 	mov		a, S_Time+1
 	cjne	a, stateTime+1, Main_Soak
@@ -633,6 +635,7 @@ Main_Soak:
 Main_R2P:
 	jnb		KEY.1, Main_reset
 	lcall	getOtemp
+	lcall	dispOtemp
 	; do stuff
 	lcall	sendTemp
 	jb 		KEY.3, Main_R2P
@@ -643,6 +646,7 @@ Main_R2P:
 Main_Reflow:
 	jnb		KEY.1, Main_reset
 	lcall	getOtemp
+	lcall	dispOtemp
 	lcall	sendTemp
 	mov		a, R_Time+1
 	cjne	a, stateTime+1, Main_Reflow
@@ -654,6 +658,7 @@ Main_Reflow:
 Main_cool:
 	jnb		KEY.1, Main_reset
 	lcall	getOtemp
+	lcall	dispOtemp
 	; do stuff
 	lcall	sendTemp
 	jb 		KEY.3, Main_cool
