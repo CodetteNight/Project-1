@@ -141,6 +141,16 @@ Clear_LEDs:
 	ret
 	
 ;---------------------------------------------------
+; Display the word SAFE on HEX's 0-3
+;---------------------------------------------------
+dispSAFE:
+	mov		HEX3, #12H
+	mov		HEX2, #08H
+	mov		HEX1, #0EH
+	mov		HEX0, #06H
+	ret	
+	
+;---------------------------------------------------
 ; PUT a character on the screen 
 ;        or 
 ; execute a COMMAND

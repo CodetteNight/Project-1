@@ -158,6 +158,12 @@ dispOtemp:
     lcall	time_temp
 	ret
 
+getDispSend:
+	lcall	getOtemp
+	lcall	dispOtemp
+	lcall	sendTemp
+	ret
+
 getRtemp:	; Result will be in BCD in roomTemp
 	clr 	SS
 	

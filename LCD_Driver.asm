@@ -156,11 +156,13 @@ LCD_Init:
 	
 I_set:
 	clr  	TR1 ; Disable timer 1
+	lcall	clear_LEDs
 	lcall	clear_LCD
 	lcall	clear_flags
 	setb	I
 	clr		LEDRA.0
-
+	lcall	getRtemp
+	
     mov		a, Line1
     lcall	LCD_command
     
@@ -190,6 +192,7 @@ R2S_set:
 	mov		buzz_loop,#2
 	setb	R2S
 	setb	pwmBit
+	lcall	getOtemp
 	
 	mov		a, Line1
 	lcall	LCD_command
@@ -220,9 +223,11 @@ R2S_set:
 	mov		R0, stateTime+0
 	clr		c
     lcall	time_temp
+   	setb  	TR1 ; Enable timer 1
 	ret
 	
 S_set:
+	clr  	TR1 ; Disable timer 1
 	mov		stateTime+1, #00H
 	mov		stateTime+0, #00H
 	lcall	clear_flags
@@ -244,9 +249,11 @@ S_set:
 	mov		R0, stateTime+0	
 	clr		c
     lcall	time_temp
+   	setb  	TR1 ; Enable timer 1
 	ret
 	
 R2P_set:
+	clr  	TR1 ; Disable timer 1
 	mov		stateTime+1, #00H
 	mov		stateTime+0, #00H
 	lcall	clear_flags
@@ -269,9 +276,11 @@ R2P_set:
 	mov		R0, stateTime+0	
 	clr		c
     lcall	time_temp
+   	setb  	TR1 ; Enable timer 1
 	ret
 	
 R_set:
+	clr  	TR1 ; Disable timer 1
 	mov		stateTime+1, #00H
 	mov		stateTime+0, #00H
 	lcall	clear_flags
@@ -293,16 +302,16 @@ R_set:
 	mov		R0, stateTime+0	
 	clr		c
     lcall	time_temp
+   	setb  	TR1 ; Enable timer 1
 	ret
 	
 CL_set:
+	clr  	TR1 ; Disable timer 1
 	mov		stateTime+1, #00H
 	mov		stateTime+0, #00H
 	lcall	clear_flags
 	mov		buzz_cnt, BZTIME
-	setb	osc
-	mov		buzz_loop,#12
-	;mov		buzz_loop,#10
+	mov		buzz_loop,#10
 	setb	CL	
 	
 	mov		a, Line2
@@ -319,6 +328,7 @@ CL_set:
 	mov		R0, stateTime+0	
 	clr		c
     lcall	time_temp
+   	setb  	TR1 ; Enable timer 1
 	ret	
 	
 params_set:
@@ -590,7 +600,6 @@ Set_loop:
 	jb		KEY.2, Set_loop
 	jnb		KEY.2, $
 	mov		param, last_param
-	lcall   clear_LEDs
 	lcall	I_set
 Main_loop:
 	jnb		KEY.2, Set_Mode
@@ -604,27 +613,28 @@ Main_loop:
 	jb 		KEY.3, Main_loop
 	jnb		KEY.3, $
 	lcall	R2S_set
-    setb 	TR1 ; Enable timer 1
 Main_R2S:
-	jnb		KEY.1, Main_reset
-	lcall	getOtemp
-	lcall	dispOtemp
-	;Load_X(ovenTemp)
-	;Load_Y(R2S_Temp)
-	;lcall	x_lt_y
-	;jnb	mf, Main_R2S
-	;		S_set
-	lcall	sendTemp
-	jb 		KEY.3, Main_R2S
-	jnb		KEY.3, $
-	clr  	TR1 ; Disable timer 1
+	jnb		KEY.1, mid_reset
+	lcall	getDispSend
+	mov		a, R2S_Temp+1
+	cjne	a, ovenTemp+1, checkC_R2S
+check_R2S:
+	mov		a, R2S_Temp+0
+	cjne	a, ovenTemp+0, check2C_R2S
+done_R2S:
 	lcall	S_set
-    setb 	TR1 ; Enable timer 1
+	ljmp	Main_Soak
+checkC_R2S:
+	jnc		Main_R2S
+	ljmp	check_R2S
+check2C_R2S:
+	jnc		Main_R2S
+	ljmp	done_R2S
+mid_reset:
+	ljmp	Main_reset
 Main_Soak:
-	jnb		KEY.1, Main_reset
-	lcall	getOtemp
-	lcall	dispOtemp
-	lcall	sendTemp
+	jnb		KEY.1, mid_reset
+	lcall	getdispSend
 	mov		a, S_Time+1
 	cjne	a, stateTime+1, Main_Soak
 	mov		a, S_Time+0
@@ -633,37 +643,46 @@ Main_Soak:
 	lcall	R2P_set
     setb 	TR1 ; Enable timer 1
 Main_R2P:
-	jnb		KEY.1, Main_reset
-	lcall	getOtemp
-	lcall	dispOtemp
-	; do stuff
-	lcall	sendTemp
-	jb 		KEY.3, Main_R2P
-	jnb		KEY.3, $
-	clr  	TR1 ; Disable timer 1
+	jnb		KEY.1, mid_reset
+	lcall	getDispSend
+	mov		a, R2P_Temp+1
+	cjne	a, ovenTemp+1, checkC_R2P
+check_R2P:
+	mov		a, R2P_Temp+0
+	cjne	a, ovenTemp+0, check2C_R2P
+done_R2P:
 	lcall	R_set
-    setb 	TR1 ; Enable timer 1
+	ljmp	Main_Reflow
+checkC_R2P:
+	jnc		Main_R2P
+	ljmp	check_R2P
+check2C_R2P:
+	jnc		Main_R2P
+	ljmp	done_R2P
 Main_Reflow:
 	jnb		KEY.1, Main_reset
-	lcall	getOtemp
-	lcall	dispOtemp
-	lcall	sendTemp
+	lcall	getDispSend
 	mov		a, R_Time+1
 	cjne	a, stateTime+1, Main_Reflow
 	mov		a, R_Time+0
 	cjne	a, stateTime+0, Main_Reflow
-	clr  	TR1 ; Disable timer 1
 	lcall	CL_set
-    setb 	TR1 ; Enable timer 1
 Main_cool:
 	jnb		KEY.1, Main_reset
-	lcall	getOtemp
-	lcall	dispOtemp
-	; do stuff
-	lcall	sendTemp
-	jb 		KEY.3, Main_cool
-	jnb		KEY.3, $
-	ljmp	Main_done
+	lcall	getDispSend
+	load_Y(60)
+	Load_X(ovenTemp)
+	call	bcd2hex
+	lcall	x_gt_y
+	jb	mf, Main_cool
+	setb	bzBit
+	mov		buzz_cnt, BZTIME
+	setb	osc
+	mov		buzz_loop,#12
+Main_safe:
+	lcall	getDispSend
+	lcall	dispSAFE
+	jb		KEY.1, Main_safe
 Main_reset:
 	jnb		KEY.1, $
 Main_done:
